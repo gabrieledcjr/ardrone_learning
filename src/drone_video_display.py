@@ -163,7 +163,7 @@ class DroneVideoDisplay():
 			goal_number = cv2.countNonZero(goal_mask)
                         goal_percentage = (goal_number * 1.0) / (size * 1.0)
 
-			rospy.loginfo("Gray Percentage: %s", str(percentage))
+			#rospy.loginfo("Gray Percentage: %s", str(percentage))
                         pubGoal = rospy.Publisher('/ardrone_learning/IsGoal', Bool)
 			if goal_percentage >= 45.0:
 				pubGoal.publish(data=True)
@@ -198,7 +198,7 @@ class DroneVideoDisplay():
 
 		# Update the message to be displayed
 		'''msg = self.StatusMessages[navdata.state] if navdata.state in self.StatusMessages else self.UnknownMessage
-		self.statusMessage = '{} (Battery: {}%)'.format(msg,int(navdata.batteryPercent))'''
+		self.statusMessage = '{} (Battery: {}%)'.format(msg,int(navdata.batteryPercent))
 
 		self.tagLock.acquire()
 		try:
@@ -207,7 +207,7 @@ class DroneVideoDisplay():
 			else:
 				self.tags = []
 		finally:
-			self.tagLock.release()
+			self.tagLock.release()'''
 
 if __name__=='__main__':
 	import sys

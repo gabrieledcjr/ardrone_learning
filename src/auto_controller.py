@@ -29,6 +29,7 @@ from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.msg import ModelState
 from std_msgs.msg import String
 from std_msgs.msg import Float32 
+from std_msgs.msg import Bool
 
 class State:
    def __init__(self):
@@ -62,74 +63,74 @@ class ARDroneController():
   # FIXME convert x to meters
   def Forward(self, x):
     while x > 0:
-      self.pitch += 1.0
+      self.pitch += 1.5
       self.UpdateDroneState(pitch=self.pitch)
       x -= 1
-    self.pitch -= 1.0
-    self.UpdateDroneState(pitch=self.pitch)
+    #self.pitch -= 1.0
+    #self.UpdateDroneState(pitch=self.pitch)
 
   # FIXME convert x to meters
   def Backward(self, x):
     while x > 0:
-      self.pitch += -1.0
+      self.pitch += -1.5
       self.UpdateDroneState(pitch=self.pitch)
       x -= 1
-    self.pitch -= -1.0
-    self.UpdateDroneState(pitch=self.pitch)
+    #self.pitch -= -1.0
+    #self.UpdateDroneState(pitch=self.pitch)
 
   # FIXME convert x to meters
   def Left(self, x):
     while x > 0:
-      self.roll += 1.0
+      self.roll += 1.5
       self.UpdateDroneState(roll=self.roll)
       x -= 1
-    self.roll -= 1.0
-    self.UpdateDroneState(roll=self.roll)
+    #self.roll -= 1.0
+    #self.UpdateDroneState(roll=self.roll)
 
   # FIXME convert x to meters
   def Right(self, x):
     while x > 0:
-      self.roll += -1.0
+      self.roll += -1.5
       self.UpdateDroneState(roll=self.roll)
       x -= 1
-    self.roll -= -1.0
-    self.UpdateDroneState(roll=self.roll)
+    #self.roll -= -1.0
+    #self.UpdateDroneState(roll=self.roll)
 
   # FIXME convert x to degrees
   def TurnLeft(self, x):
     while x > 0:
-      self.yaw_velocity += 1.0
+      self.yaw_velocity += 1.5
       self.UpdateDroneState(yaw=self.yaw_velocity)
       x -= 1
-    self.yaw_velocity -= 1.0
-    self.UpdateDroneState(yaw=self.yaw_velocity)
+    #self.yaw_velocity -= 1.0
+    #self.UpdateDroneState(yaw=self.yaw_velocity)
 
   # FIXME convert x to degrees
   def TurnRight(self, x):
     while x > 0:
-      self.yaw_velocity += -1.0
+      self.yaw_velocity += -1.5
       self.UpdateDroneState(yaw=self.yaw_velocity)
       x -= 1
-    self.yaw_velocity -= -1.0
-    self.UpdateDroneState(yaw=self.yaw_velocity)
+    #self.yaw_velocity -= -1.0
+    #self.UpdateDroneState(yaw=self.yaw_velocity)
 
   # FIXME convert x to meters
   def Up(self, x):
     while x > 0:
-      self.z_velocity += 1.0
+      self.z_velocity += 1.5
       self.UpdateDroneState(altitude=self.z_velocity)
       x -= 1
-    self.z_velocity -= 1.0
-    self.UpdateDroneState(altitude=self.z_velocity)
+    #self.z_velocity -= 1.0
+    #self.UpdateDroneState(altitude=self.z_velocity)
 
   # FIXME convert x to meters
   def Down(self, x):
     while x > 0:
-      self.z_velocity += -1.0
+      self.z_velocity += -1.5
       self.UpdateDroneState(altitude=self.z_velocity)
       x -= 1
-    self.z_velocity -= -1.0
-    self.UpdateDroneState(altitude=self.z_velocity)
+    #self.z_velocity -= -1.0
+    #self.UpdateDroneState(altitude=self.z_velocity)
 
   def UpdateDroneState(self, roll=0, pitch=0, yaw=0, altitude=0):
     self.roll = roll
@@ -155,7 +156,7 @@ class Experiment():
     #rospy.Subscriber('targetX', String, self.callback2)
     #rospy.Subscriber('targetY', String, self.callback3)
     rospy.Subscriber('/ardrone_learning/PercentGray', Float32, self.PercentGray)
-    #rospy.Subscriber('/ardrone_learning/IsGoal', Float32, self.IsGoal)
+    rospy.Subscriber('/ardrone_learning/IsGoal', Bool, self.IsGoal)
 
     width = 8
     height = 20
@@ -165,8 +166,9 @@ class Experiment():
     self.__current_state = (0,0)
     self.__default_q = 1
     self.q_map = q_map
-    self.__actions = {'forward', 'backward', 'left', 'right', 'turn_right', 
-        'turn_left'}
+    #self.__actions = {'forward', 'backward', 'left', 'right', 'turn_right', 
+    #    'turn_left'}
+    self.__actions = {'forward', 'left', 'right', 'turn_right', 'turn_left'}
     self.world = self.__build_world(width, height)
     self.__total_reward = 0
     self.__episode_reward = 0
@@ -175,16 +177,16 @@ class Experiment():
 
 
   def ReceiveModelStates(self, model_states):
-    self.x_position = int(model_states.pose[10].position.x)
-    self.y_position = int(model_states.pose[10].position.y)
+    self.x_position = int(model_states.pose[7].position.x)
+    self.y_position = int(model_states.pose[7].position.y)
 
     # Determine state
     self.__current_state = (self.x_position, self.y_position)
 
 
   def PercentGray(self, gray):
-    rospy.loginfo('gray: {}'.format(gray))
-    if gray > 0.06:
+    #rospy.loginfo('gray: {}'.format(gray))
+    if gray.data >= 0.06:
       # Crashing into a wall end episode
       reward = -100
       self.__total_reward -= 100
@@ -220,16 +222,16 @@ class Experiment():
         action = max(self.world[x][y].actions, key=self.world[x][y].actions.get)
         return action[0]
 
-"""
-<<<<<<< Updated upstream
-  def ReceiveModelStates(self, model_states):
-    self.x_position = model_states.pose[10].position.x
-    self.y_position = model_states.pose[10].position.y
-    #rospy.loginfo("The values of x & y : %s %s",str(self.x_position), str(self.y_position))
-=======
-    return 'N'
->>>>>>> Stashed changes
-"""
+  """
+  <<<<<<< Updated upstream
+    def ReceiveModelStates(self, model_states):
+      self.x_position = model_states.pose[10].position.x
+      self.y_position = model_states.pose[10].position.y
+      #rospy.loginfo("The values of x & y : %s %s",str(self.x_position), str(self.y_position))
+  =======
+      return 'N'
+  >>>>>>> Stashed changes
+  """
   def __get_max_action_value(self, x, y):
 
     for value in self.world[x][y].actions.values():
@@ -243,7 +245,7 @@ class Experiment():
     # Take the highest Q action
     # Default to a huge negative number to force it to be reset
     x, y = state
-    greedy_q_value = -10000000
+    greedy_q_value = -10000000000
     for action in self.world[x][y].actions:
       new_q_value = self.__get_q(x, y, action)
       if  new_q_value > greedy_q_value:
@@ -280,8 +282,8 @@ class Experiment():
     if action == 'forward':
       self.controller.Forward(1)
 
-    if action == 'backward':
-      self.controller.Backward(1)
+    #if action == 'backward':
+    #  self.controller.Backward(1)
 
     if action == 'left':
       self.controller.Left(1)
@@ -295,17 +297,18 @@ class Experiment():
     if action == 'turn_right':
       self.controller.TurnRight(1)
 
-  def IsGoal(self):
+  def IsGoal(self, is_goal):
     # If the new state is the goal, hooray! 100 points
 
-    # Goal state found!
-    reward = 100
-    self.__total_reward += 100
-    self.__episode_reward += 100
-    self.record_move(self.__turn, x, y, action, reward, f)
+    if is_goal.data is True:
+      # Goal state found!
+      reward = 100
+      self.__total_reward += 100
+      self.__episode_reward += 100
+      self.record_move(self.__turn, x, y, action, reward, f)
 
-    # Record end game values
-    self.record_end_game(f, True)
+      # Record end game values
+      self.record_end_game(f, True)
 
   def get_reward(self, action, f):
     # Haven't found the goal yet keep looking -1 point
@@ -325,18 +328,31 @@ class Experiment():
     action = self.__choose_action(self.__current_state)
 
     # Repeat (for each step of episode):
-    self.__turn = 0
-    for turn in range(max_num_turns):
-      if self.end_episode is True:
-        return self.world
+    self.__turn = -1
 
-      self.__turn = turn
+    #for turn in range(max_num_turns):
+    while max_num_turns:
+
+      self.__turn += 1
       # Take action a, observe r, s'
       old_state = self.__current_state
       old_action = action
-      self.__move(turn, action, f)
+      self.__move(self.__turn, action, f)
       # Wait for move command to go into effect
-      time.sleep(1)
+      #time.sleep(1)
+
+      if self.end_episode is True:
+        reward = -100
+
+        new_state = self.__current_state
+        # Choose action' from state' using policy derived from Q(e.g. e-greedy)
+        new_action = self.__choose_action(new_state)
+
+        qsa = self.__get_q(old_state[0], old_state[1], old_action)
+        qsa_new = self.__get_q(new_state[0], new_state[1], new_action)
+        updated_reward = qsa + (alpha * (reward + gamma * qsa_new - qsa))
+        self.__set_q(old_state[0], old_state[1], old_action, updated_reward)
+        return self.world
 
       reward = self.get_reward(action, f)
 
@@ -351,6 +367,9 @@ class Experiment():
       self.__set_q(old_state[0], old_state[1], old_action, updated_reward)
       # s <- s'; a <- a';
       action = new_action
+      rospy.loginfo("#: {} Action: {}".format(max_num_turns, action))
+      max_num_turns -= 1
+      time.sleep(1)
 
     # If we get here, we maxed out the number of turns
     print("Max turns reached before goal state :(")
@@ -448,14 +467,14 @@ if __name__=='__main__':
     gamma = 0.5
 
   """
-  episodes = 1000
-  max_num_turns = 1000000
+  episodes = 250000
+  max_num_turns = 10000000000
   q_map = None
   alpha = 0.1
   gamma = 0.5
 
   controller = ARDroneController()
-  experiment = Experiment()
+  #experiment = Experiment()
 
   path = str(3)
   try:
@@ -467,19 +486,23 @@ if __name__=='__main__':
       raise exc
 
   for episode in range(episodes):
+    experiment = Experiment()
     f = open('{}/{}_gridworld_results_{}.txt'.format(3, 3,
         episode), 'w')
     controller.Takeoff()
-    time.sleep(1)
+    time.sleep(3)
     q_map = experiment.episode(max_num_turns, q_map, f, alpha, gamma)
     # Reset the quadcopter
-    time.sleep(1)
     controller.Land()
+    time.sleep(4)
     os.system("rosservice call /gazebo/set_model_state '{model_state: "
         "{ model_name: quadrotor, pose: { position: { x: 0, y: 0, z: 0.1 }, "
         "orientation: {x: 0, y: 0, z: 0, w: 1} }, twist: "
         "{linear: {x: 0, y: 0, z: 0 }, angular: {x: 0, y: 0, z: 0} }, "
         "reference_frame: world } }'")
+    del experiment
+    f.close()
+    time.sleep(1)
 
 	# and only progresses to here once the application has been shutdown
 	#rospy.signal_shutdown('Great Flying!')
