@@ -30,6 +30,7 @@ import cv2.cv as cv
 import cv2 as cv2
 from image_converter import ToOpenCV, ToRos
 import numpy as np
+from std_msgs.msg import Int32, Float32
 
 # Some Constants
 '''CONNECTION_CHECK_PERIOD = 250 #ms
@@ -137,20 +138,23 @@ class DroneVideoDisplay():
                         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
 			# ADJUST these values to get a greater range of color
-                        lower_blue = np.array([10, 5, 95], dtype=np.uint8)
+                        lower_blue = np.array([ 8, 6, 71], dtype=np.uint8)
                         upper_blue = np.array([50,45,135], dtype=np.uint8)
                       
                         # Threshold the HSV image to get only blue colors
                         mask = cv2.inRange(hsv, lower_blue, upper_blue)
                         flag, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY)
 
+                        # NEEDS TO PUBLISH Percentage, size, number of gray
                         number = cv2.countNonZero(mask)
                         size = mask.shape[0] * mask.shape[1]
                         percentage = (number * 1.0) / (size * 1.0)
-         
-                        # NEEDS TO PUBLISH Percentage, size, number of gray
+			pubSize = rospy.Publisher('/ardrone_learning/SizeGray', Int32)
+                        pubPercent = rospy.Publisher('/ardrone_learning/PercentGray', Float32)        
+                        pubSize.publish(data=number)
+			pubPercent.publish(data=percentage)
+                        
                         cv2.imshow("mask", mask)
-
                         cv.ShowImage("windowimage", image_cv)
                         cv.WaitKey(2)
 			# We could  do more processing (eg OpenCV) here if we wanted to, but for now lets just display the window.
