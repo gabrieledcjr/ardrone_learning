@@ -30,7 +30,7 @@ import cv2.cv as cv
 import cv2 as cv2
 from image_converter import ToOpenCV, ToRos
 import numpy as np
-from std_msgs.msg import Int32, Float32
+from std_msgs.msg import Int32, Float32, Bool
 
 # Some Constants
 '''CONNECTION_CHECK_PERIOD = 250 #ms
@@ -138,13 +138,19 @@ class DroneVideoDisplay():
                         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
 			# ADJUST these values to get a greater range of color
-                        lower_blue = np.array([ 8, 6, 71], dtype=np.uint8)
-                        upper_blue = np.array([50,45,135], dtype=np.uint8)
-                      
-                        # Threshold the HSV image to get only blue colors
-                        mask = cv2.inRange(hsv, lower_blue, upper_blue)
-                        flag, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY)
+                        lower_gray = np.array([ 8, 6, 71], dtype=np.uint8)
+                        upper_gray = np.array([50,45,135], dtype=np.uint8)
 
+			lower_white = np.array([ 0, 0,245], dtype=np.uint8)
+                        upper_white = np.array([10,10,255], dtype=np.uint8)
+                        # Threshold the HSV image to get only white color
+                        goal_mask = cv2.inRange(hsv, lower_white, upper_white)
+
+                        # Threshold the HSV image to get only gray colors
+                        mask = cv2.inRange(hsv, lower_gray, upper_gray)
+                        flag, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY)
+                        flag, goal_mask = cv2.threshold(goal_mask, 100, 255, cv2.THRESH_BINARY)                        
+ 
                         # NEEDS TO PUBLISH Percentage, size, number of gray
                         number = cv2.countNonZero(mask)
                         size = mask.shape[0] * mask.shape[1]
@@ -153,7 +159,18 @@ class DroneVideoDisplay():
                         pubPercent = rospy.Publisher('/ardrone_learning/PercentGray', Float32)        
                         pubSize.publish(data=number)
 			pubPercent.publish(data=percentage)
-                        
+
+			goal_number = cv2.countNonZero(goal_mask)
+                        goal_percentage = (goal_number * 1.0) / (size * 1.0)
+
+			rospy.loginfo("Gray Percentage: %s", str(percentage))
+                        pubGoal = rospy.Publisher('/ardrone_learning/IsGoal', Bool)
+			if goal_percentage >= 45.0:
+				pubGoal.publish(data=True)
+			else:
+				pubGoal.publish(data=False)                       
+ 
+                        cv2.imshow("goal_mask", goal_mask)
                         cv2.imshow("mask", mask)
                         cv.ShowImage("windowimage", image_cv)
                         cv.WaitKey(2)

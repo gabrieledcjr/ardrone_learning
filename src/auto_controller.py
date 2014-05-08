@@ -256,7 +256,7 @@ class Experiment():
   def ReceiveModelStates(self, model_states):
     self.x_position = model_states.pose[10].position.x
     self.y_position = model_states.pose[10].position.y
-    rospy.loginfo("The values of x & y : %s %s",str(self.x_position), str(self.y_position))
+    #rospy.loginfo("The values of x & y : %s %s",str(self.x_position), str(self.y_position))
 
   def episode(self):
     time.sleep(1)
