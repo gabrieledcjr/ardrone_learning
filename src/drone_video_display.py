@@ -27,8 +27,9 @@ from drone_status import DroneStatus
 # We need an image convereted to use opencv
 # GABE
 import cv2.cv as cv
+import cv2 as cv2
 from image_converter import ToOpenCV, ToRos
-
+import numpy as np
 
 # Some Constants
 '''CONNECTION_CHECK_PERIOD = 250 #ms
@@ -131,6 +132,25 @@ class DroneVideoDisplay():
 				self.imageLock.release()
 
                         # GABE
+                        # Convert BGR to HSV
+                        frame = np.asarray(image_cv)
+                        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+			# ADJUST these values to get a greater range of color
+                        lower_blue = np.array([10, 5, 95], dtype=np.uint8)
+                        upper_blue = np.array([50,45,135], dtype=np.uint8)
+                      
+                        # Threshold the HSV image to get only blue colors
+                        mask = cv2.inRange(hsv, lower_blue, upper_blue)
+                        flag, mask = cv2.threshold(mask, 100, 255, cv2.THRESH_BINARY)
+
+                        number = cv2.countNonZero(mask)
+                        size = mask.shape[0] * mask.shape[1]
+                        percentage = (number * 1.0) / (size * 1.0)
+         
+                        # NEEDS TO PUBLISH Percentage, size, number of gray
+                        cv2.imshow("mask", mask)
+
                         cv.ShowImage("windowimage", image_cv)
                         cv.WaitKey(2)
 			# We could  do more processing (eg OpenCV) here if we wanted to, but for now lets just display the window.
