@@ -35,7 +35,7 @@ class State:
    def __init__(self):
       self.x = 0
       self.y = 0
-      self.actions = {'forward': 0, 'backward': 0, 'left': 0, 'right': 0,
+      self.actions = {'forward': 0, 'left': 0, 'right': 0,
           'turn_right': 0, 'turn_left': 0}
       self.special = None
 
@@ -132,6 +132,9 @@ class ARDroneController():
     #self.z_velocity -= -1.0
     #self.UpdateDroneState(altitude=self.z_velocity)
 
+  def Stop(self):
+    self.UpdateDroneState()
+
   def UpdateDroneState(self, roll=0, pitch=0, yaw=0, altitude=0):
     self.roll = roll
     self.pitch = pitch
@@ -144,9 +147,9 @@ class ARDroneController():
 
 class Experiment():
 
-  def __init__(self):
-    self.display = DroneVideoDisplay()
-    self.controller = ARDroneController()
+  def __init__(self, controller, display):
+    self.display = display
+    self.controller = controller
 
     reset_model_pub = rospy.Publisher('/gazebo/set_model_state', ModelState)
 
@@ -174,7 +177,7 @@ class Experiment():
     self.__episode_reward = 0
     self.__turn = 0
     self.end_episode = False
-
+    self.is_goal = False
 
   def ReceiveModelStates(self, model_states):
     self.x_position = int(model_states.pose[7].position.x)
@@ -301,6 +304,8 @@ class Experiment():
     # If the new state is the goal, hooray! 100 points
 
     if is_goal.data is True:
+      self.controller.Land()
+      time.sleep(3)
       # Goal state found!
       reward = 100
       self.__total_reward += 100
@@ -309,6 +314,7 @@ class Experiment():
 
       # Record end game values
       self.record_end_game(f, True)
+      self.is_goal = True
 
   def get_reward(self, action, f):
     # Haven't found the goal yet keep looking -1 point
@@ -330,6 +336,8 @@ class Experiment():
     # Repeat (for each step of episode):
     self.__turn = -1
 
+    self.controller.Takeoff()
+    time.sleep(3)
     #for turn in range(max_num_turns):
     while max_num_turns:
 
@@ -352,6 +360,11 @@ class Experiment():
         qsa_new = self.__get_q(new_state[0], new_state[1], new_action)
         updated_reward = qsa + (alpha * (reward + gamma * qsa_new - qsa))
         self.__set_q(old_state[0], old_state[1], old_action, updated_reward)
+        self.controller.Land()
+        time.sleep(3)
+        return self.world
+
+      if self.is_goal is True:
         return self.world
 
       reward = self.get_reward(action, f)
@@ -473,8 +486,9 @@ if __name__=='__main__':
   alpha = 0.1
   gamma = 0.5
 
-  controller = ARDroneController()
+  #controller = ARDroneController()
   #experiment = Experiment()
+  display = DroneVideoDisplay()
 
   path = str(3)
   try:
@@ -486,23 +500,21 @@ if __name__=='__main__':
       raise exc
 
   for episode in range(episodes):
-    experiment = Experiment()
+    time.sleep(4)
+    controller = ARDroneController()
+    experiment = Experiment(controller, display)
     f = open('{}/{}_gridworld_results_{}.txt'.format(3, 3,
         episode), 'w')
-    controller.Takeoff()
-    time.sleep(3)
     q_map = experiment.episode(max_num_turns, q_map, f, alpha, gamma)
     # Reset the quadcopter
-    controller.Land()
-    time.sleep(4)
     os.system("rosservice call /gazebo/set_model_state '{model_state: "
         "{ model_name: quadrotor, pose: { position: { x: 0, y: 0, z: 0.1 }, "
         "orientation: {x: 0, y: 0, z: 0, w: 1} }, twist: "
         "{linear: {x: 0, y: 0, z: 0 }, angular: {x: 0, y: 0, z: 0} }, "
         "reference_frame: world } }'")
     del experiment
+    del controller
     f.close()
-    time.sleep(1)
 
 	# and only progresses to here once the application has been shutdown
 	#rospy.signal_shutdown('Great Flying!')
